@@ -1,5 +1,5 @@
 import os, hashlib, json
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, Query
 from motor.motor_asyncio import AsyncIOMotorClient
 from confluent_kafka import Producer
 import redis
@@ -9,6 +9,7 @@ app = FastAPI(title="misinfo-gateway")
 MONGO_URI = os.getenv("MONGO_URI","mongodb://mongo:27017")
 DB_NAME = os.getenv("MONGO_DB","misinfo")
 COLL_PAGES = os.getenv("COLL_PAGES","pages")
+COLL_CLAIMS = os.getenv("COLL_CLAIMS","claims")
 TOPIC_PAGES_RAW = os.getenv("TOPIC_PAGES_RAW","pages.raw")
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP","kafka:9092")
 REDIS_URL_SEEN = os.getenv("REDIS_URL_SEEN","redis://redis:6379/1")
@@ -34,6 +35,14 @@ async def submit_url(url: str = Body(..., embed=True)):
 @app.get("/pages")
 async def list_pages(limit: int = 20):
     cursor = db[COLL_PAGES].find({}, {"_id":0}).sort([("_id",-1)]).limit(limit)
+    return [doc async for doc in cursor]
+
+@app.get("/claims")
+async def list_claims(limit: int = 20, domain: str | None = Query(None)):
+    q = {}
+    if domain:
+        q["domain"] = domain
+    cursor = db[COLL_CLAIMS].find(q, {"_id":0}).sort([("_id",-1)]).limit(limit)
     return [doc async for doc in cursor]
 
 @app.get("/health")
