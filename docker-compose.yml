@@ -57,5 +57,18 @@ services:
     env_file: .env
     depends_on: [kafka, mongo]
 
+  qdrant:
+    image: qdrant/qdrant:v1.10.0
+    ports: ["6333:6333"]
+    volumes: ["qdrant_data:/qdrant/storage"]
+
+  retriever:
+    build:
+      context: .
+      dockerfile: retriever/Dockerfile
+    env_file: .env
+    depends_on: [kafka, mongo, redis, qdrant]
+
 volumes:
   mongo_data:
+  qdrant_data:

@@ -46,7 +46,8 @@ async def run():
             except Exception:
                 lang = "unknown"
 
-            domain = ".".join([p for p in tldextract.extract(url) if p])
+            ext = tldextract.extract(url)
+            domain = ".".join([part for part in [ext.subdomain, ext.domain, ext.suffix] if part])
             await db[COLL_PAGES].update_one(
                 {"url": url},
                 {"$set": {"text_norm": text, "lang": lang, "domain": domain, "status":"normalized"}}
