@@ -49,3 +49,11 @@ async def list_claims(limit: int = 20, domain: str | None = Query(None)):
 async def health():
     await db.command("ping")
     return {"ok": True}
+
+@app.get("/verifications/{claim_id}")
+async def verifications_for_claim(claim_id: str, limit: int = 10):
+    cursor = db[os.getenv("COLL_VERIFICATIONS","verifications")].find(
+        {"claim_id": claim_id},
+        {"_id":0}
+    ).sort("created_at", -1).limit(limit)
+    return [doc async for doc in cursor]

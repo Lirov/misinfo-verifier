@@ -13,3 +13,5 @@ nltk==3.9.1
 redis==5.0.7
 fastembed==0.3.3
 qdrant-client==1.9.2
+transformers==4.44.2
+

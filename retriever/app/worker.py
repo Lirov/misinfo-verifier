@@ -22,6 +22,16 @@ async def process_claim(db, producer, claim: dict):
     # 1) search Wikipedia for likely pages
     hits = wiki_search(sentence, limit=5)
     titles = [h["title"] for h in hits] if hits else []
+    # Fallback: if search returns nothing, derive title from the claim URL
+    if not titles:
+        try:
+            from urllib.parse import urlparse, unquote
+            path = urlparse(claim.get("url", "")).path or ""
+            slug = unquote(path.rsplit("/", 1)[-1]) if path else ""
+            if slug:
+                titles = [slug.replace("_", " ")]
+        except Exception:
+            pass
     # 2) fetch + index passages for each title (idempotent: Qdrant upsert)
     total_chunks = 0
     for t in titles:

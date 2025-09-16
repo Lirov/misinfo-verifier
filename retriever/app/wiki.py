@@ -16,6 +16,10 @@ def wiki_search(query: str, limit: int = 5):
     cached = r.get(ck)
     if cached: 
         import json; return json.loads(cached)
+    
+    import time
+    time.sleep(1)  # Rate limit protection
+    
     params = {
         "action": "query",
         "list": "search",
@@ -23,7 +27,13 @@ def wiki_search(query: str, limit: int = 5):
         "srlimit": limit,
         "format": "json"
     }
-    res = requests.get(WIKI_API, params=params, timeout=10)
+    headers = {"User-Agent": "misinfo-bot/0.1 (educational research)"}
+    res = requests.get(WIKI_API, params=params, timeout=10, headers=headers)
+    
+    if res.status_code == 403:
+        print(f"Wikipedia rate limited, skipping search for: {query[:50]}...")
+        return []
+    
     res.raise_for_status()
     data = res.json().get("query", {}).get("search", [])
     r.setex(ck, 60*60, res.text)  # 1h cache
@@ -33,10 +43,20 @@ def wiki_page_plain(title: str) -> str:
     ck = _cache_key("plain", title)
     cached = r.get(ck)
     if cached: return cached
+    
+    import time
+    time.sleep(0.5)  # Rate limit protection
+    
     # Use REST API plain text
     url = f"{WIKI_REST}/{requests.utils.quote(title)}"
-    res = requests.get(url, timeout=10, headers={"User-Agent": "misinfo-bot/0.1"})
+    headers = {"User-Agent": "misinfo-bot/0.1 (educational research)"}
+    res = requests.get(url, timeout=10, headers=headers)
+    
     if res.status_code == 404: return ""
+    if res.status_code == 403:
+        print(f"Wikipedia rate limited, skipping page: {title}")
+        return ""
+    
     res.raise_for_status()
     text = res.text
     r.setex(ck, 60*60*6, text)  # 6h
