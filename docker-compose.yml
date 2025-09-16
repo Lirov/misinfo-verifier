@@ -74,7 +74,14 @@ services:
       context: .
       dockerfile: verifier/Dockerfile
     env_file: .env
-    depends_on: [kafka, mongo]  
+    depends_on: [kafka, mongo]
+
+  scoring-aggregator:
+    build:
+      context: .
+      dockerfile: scoring-aggregator/Dockerfile
+    env_file: .env
+    depends_on: [kafka, mongo]    
 
 volumes:
   mongo_data:

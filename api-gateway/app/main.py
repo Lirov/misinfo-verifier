@@ -57,3 +57,33 @@ async def verifications_for_claim(claim_id: str, limit: int = 10):
         {"_id":0}
     ).sort("created_at", -1).limit(limit)
     return [doc async for doc in cursor]
+
+@app.get("/claims/{claim_id}")
+async def claim_detail(claim_id: str):
+    # join claim + verdict for a nice demo payload
+    claim = await db[os.getenv("COLL_CLAIMS","claims")].find_one({"claim_id": claim_id}, {"_id":0})
+    verdict = await db[os.getenv("COLL_VERDICTS","verdicts")].find_one({"claim_id": claim_id}, {"_id":0})
+    if not claim:
+        return {"error":"claim_not_found"}
+    return {"claim": claim, "verdict": verdict}
+
+@app.get("/claims-with-verdicts")
+async def claims_with_verdicts(limit: int = 20):
+    pipeline = [
+        {"$lookup": {
+            "from": os.getenv("COLL_VERDICTS","verdicts"),
+            "localField":"claim_id",
+            "foreignField":"claim_id",
+            "as":"v"
+        }},
+        {"$unwind": {"path":"$v", "preserveNullAndEmptyArrays": True}},
+        {"$project": {"_id":0, "claim_id":1, "sentence":1, "url":1, "domain":1, "lang":1,
+                      "verdict":"$v.verdict", "confidence":"$v.confidence"}},
+        {"$sort": {"_id": -1}},
+        {"$limit": limit}
+    ]
+    out = []
+    async for doc in db[os.getenv("COLL_CLAIMS","claims")].aggregate(pipeline):
+        out.append(doc)
+    return out
+
